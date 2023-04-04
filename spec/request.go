@@ -1,5 +1,6 @@
 package spec
 
-type WebsitesRequest struct{
+// WebsitesRequest is the request schema
+type WebsitesRequest struct {
 	Websites []string `json:"websites"`
 }

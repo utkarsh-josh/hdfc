@@ -1,14 +1,15 @@
 package service
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
-	"encoding/json"
 
 	"github.com/utkarsh-josh/hdfc/spec"
 	"github.com/utkarsh-josh/hdfc/svcutils"
 )
 
+// DecodeAddWebsitesRequest parses the http request for Add Websites
 func DecodeAddWebsitesRequest(r *http.Request) (interface{}, error) {
 	request := spec.WebsitesRequest{}
 	decoder := json.NewDecoder(r.Body)
@@ -21,7 +22,7 @@ func DecodeAddWebsitesRequest(r *http.Request) (interface{}, error) {
 	return &request, nil
 }
 
-
+// DecodeGetWebsitesStatus parses the http request for Get Websites Status
 func DecodeGetWebsitesStatus(r *http.Request) (interface{}, error) {
 	request := spec.WebsitesRequest{}
 	var err error

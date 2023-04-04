@@ -6,6 +6,7 @@ import (
 	"github.com/go-kit/kit/log"
 )
 
+// InitLogging initializes logging handler
 func InitLogging() log.Logger {
 	var logger log.Logger
 	logger = log.NewLogfmtLogger(os.Stderr)

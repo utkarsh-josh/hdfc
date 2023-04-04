@@ -5,11 +5,13 @@ import (
 	"strings"
 )
 
+// Name ...
 const (
 	Name = "name"
 )
 
-var AllowedQueryParams = map[string]struct{} {
+// AllowedQueryParams is the list of allowed query params
+var AllowedQueryParams = map[string]struct{}{
 	Name: struct{}{},
 }
 

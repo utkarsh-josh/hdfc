@@ -6,12 +6,13 @@ import (
 	"time"
 )
 
+// CheckWebsitesStatus checks status of all the websites in the memory map
 func (bl *BL) CheckWebsitesStatus() {
 	m := make(map[string]string)
 
 	resp := bl.dl.ListWebsitesStatus()
 	for website := range resp.StatusMap {
-		statusCode, err := bl.sendOverHttp(http.MethodGet, website)
+		statusCode, err := bl.sendOverHTTP(http.MethodGet, website)
 		if err != nil || statusCode != http.StatusOK {
 			m[website] = "DOWN"
 			continue
@@ -28,7 +29,8 @@ func (bl *BL) CheckWebsitesStatus() {
 	)
 }
 
-func (bl *BL) sendOverHttp(method, website string) (int, error) {
+// sendOverHttp send http request to check the status of the website
+func (bl *BL) sendOverHTTP(method, website string) (int, error) {
 	u, err := url.Parse(website)
 	if err != nil {
 		bl.logger.Log(
