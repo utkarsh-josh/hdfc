@@ -1,0 +1,1 @@
+It is a golang application that is meant to be a sort of status checker for some common websites that exist online. The application periodically polls the status of these websites every 1 minute and exposes APIs to retrieve the information.
