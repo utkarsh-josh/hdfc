@@ -13,7 +13,7 @@ type DL interface {
 	AddWebsitesToStatusMap(req *spec.WebsitesRequest) (spec.AddWebsiteResponse, error)
 	ListWebsitesStatus() *spec.ListWebsitesResponse
 	GetWebsitesStatusFromStatusMap(req *spec.WebsitesRequest) *spec.ListWebsitesResponse
-	UpdateWebsitesStatus(statusMap map[string]string)
+	UpdateWebsitesStatus(website, status string)
 }
 
 // BL is the business logic layer struct
@@ -51,16 +51,21 @@ func (bl *BL) GetWebsitesStatus(req *spec.WebsitesRequest) (*spec.ListWebsitesRe
 // StatusChecker is the event loop for handling periodic status check
 func (bl *BL) StatusChecker() {
 	ticker := time.NewTicker(time.Duration(bl.duration) * time.Second)
-
+	var statusChan chan spec.WebsiteStatus
 	for {
 		select {
 		case <-ticker.C:
 			bl.logger.Log(
 				"method", "StatusChecker",
-				"msg", "Period Website Status Check Started",
+				"msg", "Period Website Status Check Triggered",
 				"time", time.Now(),
 			)
-			bl.CheckWebsitesStatus()
+			resp := bl.dl.ListWebsitesStatus()
+			statusChan = make(chan spec.WebsiteStatus, len(resp.StatusMap))
+			bl.CheckWebsitesStatus(resp.StatusMap, statusChan)
+
+		case status := <-statusChan:
+			bl.dl.UpdateWebsitesStatus(status.Name, status.Status)
 		}
 	}
 }

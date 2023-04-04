@@ -62,6 +62,8 @@ func (dl *DL) GetWebsitesStatusFromStatusMap(req *spec.WebsitesRequest) *spec.Li
 }
 
 // UpdateWebsitesStatus updates the status of existing websites in the memory map
-func (dl *DL) UpdateWebsitesStatus(statusMap map[string]string) {
-	dl.websiteMap = statusMap
+func (dl *DL) UpdateWebsitesStatus(website, status string) {
+	if _, ok := dl.websiteMap[website]; ok {
+		dl.websiteMap[website] = status
+	}
 }

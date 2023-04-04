@@ -4,3 +4,9 @@ package spec
 type WebsitesRequest struct {
 	Websites []string `json:"websites"`
 }
+
+// WebsiteStatus is the struct to update website status
+type WebsiteStatus struct {
+	Name   string
+	Status string
+}

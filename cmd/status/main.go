@@ -9,7 +9,7 @@ import (
 
 func main() {
 	logger := inithandler.InitLogging()
-	service := inithandler.InitService(logger, 60)
+	service := inithandler.InitService(logger, 20)
 	go service.StatusChecker()
 	err := inithandler.HandleRequests(logger, service)
 	if err != nil {

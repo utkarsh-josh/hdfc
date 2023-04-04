@@ -3,25 +3,20 @@ package service
 import (
 	"net/http"
 	"net/url"
+	"sync"
 	"time"
+
+	"github.com/utkarsh-josh/hdfc/spec"
 )
 
 // CheckWebsitesStatus checks status of all the websites in the memory map
-func (bl *BL) CheckWebsitesStatus() {
-	m := make(map[string]string)
-
-	resp := bl.dl.ListWebsitesStatus()
-	for website := range resp.StatusMap {
-		statusCode, err := bl.sendOverHTTP(http.MethodGet, website)
-		if err != nil || statusCode != http.StatusOK {
-			m[website] = "DOWN"
-			continue
-		}
-		m[website] = "UP"
+func (bl *BL) CheckWebsitesStatus(statusMap map[string]string, ch chan spec.WebsiteStatus) {
+	var wg sync.WaitGroup
+	for website := range statusMap {
+		wg.Add(1)
+		go bl.sendOverHTTP(http.MethodGet, website, ch, &wg)
 	}
-
-	bl.dl.UpdateWebsitesStatus(m)
-
+	wg.Wait()
 	bl.logger.Log(
 		"method", "CheckWebsitesStatus",
 		"msg", "Period Website Status Check Completed",
@@ -30,7 +25,9 @@ func (bl *BL) CheckWebsitesStatus() {
 }
 
 // sendOverHttp send http request to check the status of the website
-func (bl *BL) sendOverHTTP(method, website string) (int, error) {
+func (bl *BL) sendOverHTTP(method, website string, ch chan spec.WebsiteStatus, wg *sync.WaitGroup) {
+	defer wg.Done()
+
 	u, err := url.Parse(website)
 	if err != nil {
 		bl.logger.Log(
@@ -40,11 +37,14 @@ func (bl *BL) sendOverHTTP(method, website string) (int, error) {
 			"err", err.Error(),
 			"time", time.Now(),
 		)
-		return http.StatusBadGateway, err
+		ch <- spec.WebsiteStatus{Name: website, Status: "DOWN"}
+		return
 	}
 
 	url := url.URL{Scheme: "http", Host: u.Host, Path: u.Path}
-	client := &http.Client{}
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+	}
 	req, err := http.NewRequest(method, url.String(), nil)
 	if err != nil {
 		bl.logger.Log(
@@ -54,7 +54,8 @@ func (bl *BL) sendOverHTTP(method, website string) (int, error) {
 			"err", err.Error(),
 			"time", time.Now(),
 		)
-		return http.StatusBadGateway, err
+		ch <- spec.WebsiteStatus{Name: website, Status: "DOWN"}
+		return
 	}
 
 	resp, err := client.Do(req)
@@ -66,8 +67,13 @@ func (bl *BL) sendOverHTTP(method, website string) (int, error) {
 			"err", err.Error(),
 			"time", time.Now(),
 		)
-		return http.StatusBadGateway, err
+		ch <- spec.WebsiteStatus{Name: website, Status: "DOWN"}
+		return
 	}
 
-	return resp.StatusCode, nil
+	if resp.StatusCode != http.StatusOK {
+		ch <- spec.WebsiteStatus{Name: website, Status: "DOWN"}
+		return
+	}
+	ch <- spec.WebsiteStatus{Name: website, Status: "UP"}
 }
