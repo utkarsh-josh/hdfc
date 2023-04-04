@@ -17,16 +17,16 @@ var AllowedQueryParams = map[string]struct{} {
 func GetStringArrayQueryVariable(vars url.Values, variable string) ([]string, error) {
 	valStr := vars.Get(variable)
 	if valStr == "" {
-			return nil, nil
+		return nil, nil
 	}
 
 	arr := strings.Split(valStr, ",")
 	var params []string
 	for _, p := range arr {
-			p = strings.TrimSpace(p)
-			if p != "" {
-					params = append(params, p)
-			}
+		p = strings.TrimSpace(p)
+		if p != "" {
+			params = append(params, p)
+		}
 	}
 	return params, nil
 }
