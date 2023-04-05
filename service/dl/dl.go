@@ -6,6 +6,7 @@ import (
 	"github.com/go-kit/kit/log"
 
 	"github.com/utkarsh-josh/hdfc/spec"
+	"github.com/utkarsh-josh/hdfc/svcconst"
 )
 
 // DL is the database logic layer struct
@@ -35,7 +36,7 @@ func (dl *DL) AddWebsitesToStatusMap(req *spec.WebsitesRequest) (spec.AddWebsite
 			m[website] = status
 			continue
 		}
-		m[website] = "StatusNotYetChecked"
+		m[website] = svcconst.StatusNotYetChecked
 	}
 
 	dl.websiteMap = m

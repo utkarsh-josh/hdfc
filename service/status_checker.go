@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/utkarsh-josh/hdfc/spec"
+	"github.com/utkarsh-josh/hdfc/svcconst"
 )
 
 // CheckWebsitesStatus checks status of all the websites in the memory map
@@ -37,13 +38,13 @@ func (bl *BL) sendOverHTTP(method, website string, ch chan spec.WebsiteStatus, w
 			"err", err.Error(),
 			"time", time.Now(),
 		)
-		ch <- spec.WebsiteStatus{Name: website, Status: "DOWN"}
+		ch <- spec.WebsiteStatus{Name: website, Status: svcconst.StatusDown}
 		return
 	}
 
 	url := url.URL{Scheme: "http", Host: u.Host, Path: u.Path}
 	client := &http.Client{
-		Timeout: 10 * time.Second,
+		Timeout: 5 * time.Second,
 	}
 	req, err := http.NewRequest(method, url.String(), nil)
 	if err != nil {
@@ -54,7 +55,7 @@ func (bl *BL) sendOverHTTP(method, website string, ch chan spec.WebsiteStatus, w
 			"err", err.Error(),
 			"time", time.Now(),
 		)
-		ch <- spec.WebsiteStatus{Name: website, Status: "DOWN"}
+		ch <- spec.WebsiteStatus{Name: website, Status: svcconst.StatusDown}
 		return
 	}
 
@@ -67,13 +68,13 @@ func (bl *BL) sendOverHTTP(method, website string, ch chan spec.WebsiteStatus, w
 			"err", err.Error(),
 			"time", time.Now(),
 		)
-		ch <- spec.WebsiteStatus{Name: website, Status: "DOWN"}
+		ch <- spec.WebsiteStatus{Name: website, Status: svcconst.StatusDown}
 		return
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		ch <- spec.WebsiteStatus{Name: website, Status: "DOWN"}
+		ch <- spec.WebsiteStatus{Name: website, Status: svcconst.StatusDown}
 		return
 	}
-	ch <- spec.WebsiteStatus{Name: website, Status: "UP"}
+	ch <- spec.WebsiteStatus{Name: website, Status: svcconst.StatusUp}
 }

@@ -10,6 +10,7 @@ import (
 
 	"github.com/utkarsh-josh/hdfc/service"
 	"github.com/utkarsh-josh/hdfc/spec"
+	"github.com/utkarsh-josh/hdfc/svcconst"
 )
 
 var (
@@ -91,12 +92,12 @@ func HandleRequests(logHandler log.Logger, serv *service.BL) error {
 	bl = serv
 	logger = logHandler
 	route := mux.NewRouter().StrictSlash(true)
-	route.HandleFunc("/websites", handleAddWebsites).Methods(http.MethodPost)
-	route.HandleFunc("/websites", handleGetWebsitesStatus).Methods(http.MethodGet)
+	route.HandleFunc(spec.WebsiteURL, handleAddWebsites).Methods(http.MethodPost)
+	route.HandleFunc(spec.WebsiteURL, handleGetWebsitesStatus).Methods(http.MethodGet)
 	logger.Log(
 		"method", "HandleRequests",
 		"msg", "Initialized Routes",
 		"time", time.Now(),
 	)
-	return http.ListenAndServe(":12000", route)
+	return http.ListenAndServe(svcconst.ServiceHostName, route)
 }

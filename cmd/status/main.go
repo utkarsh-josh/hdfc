@@ -5,11 +5,12 @@ import (
 	"time"
 
 	"github.com/utkarsh-josh/hdfc/inithandler"
+	"github.com/utkarsh-josh/hdfc/svcconst"
 )
 
 func main() {
-	logger := inithandler.InitLogging()
-	service := inithandler.InitService(logger, 20)
+	logger := inithandler.InitLogging(svcconst.ServiceLoggerPort)
+	service := inithandler.InitService(logger, svcconst.PeriodicStatusCheckInterval)
 	go service.StatusChecker()
 	err := inithandler.HandleRequests(logger, service)
 	if err != nil {
