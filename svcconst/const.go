@@ -23,3 +23,8 @@ const (
 	StatusUp            = "UP"
 	StatusDown          = "DOWN"
 )
+
+// MaxWorkerCount...
+const (
+	MaxWorkerCount = 5
+)

@@ -71,13 +71,15 @@
 				
 				<option value="file7">github.com/utkarsh-josh/hdfc/service/dl/dl.go (100.0%)</option>
 				
-				<option value="file8">github.com/utkarsh-josh/hdfc/service/status_checker.go (89.3%)</option>
+				<option value="file8">github.com/utkarsh-josh/hdfc/service/status_checker.go (87.5%)</option>
 				
 				<option value="file9">github.com/utkarsh-josh/hdfc/service/transport.go (89.5%)</option>
 				
 				<option value="file10">github.com/utkarsh-josh/hdfc/svcutils/svcutils.go (90.0%)</option>
 				
 				<option value="file11">github.com/utkarsh-josh/hdfc/testutil/testutil.go (100.0%)</option>
+				
+				<option value="file12">github.com/utkarsh-josh/hdfc/workerpool/workerpool.go (100.0%)</option>
 				
 				</select>
 			</div>
@@ -248,12 +250,15 @@ import (
 
         "github.com/utkarsh-josh/hdfc/service"
         serviceDL "github.com/utkarsh-josh/hdfc/service/dl"
+        "github.com/utkarsh-josh/hdfc/svcconst"
+        wp "github.com/utkarsh-josh/hdfc/workerpool"
 )
 
 // InitService initializes service bl layer and dl layer
 func InitService(logger log.Logger, duration int) *service.BL <span class="cov8" title="1">{
         dl := serviceDL.NewDL(logger)
-        bl := service.NewService(logger, dl, duration)
+        workerpool := wp.NewWorkerPool(svcconst.MaxWorkerCount)
+        bl := service.NewService(logger, workerpool, dl, duration)
         return bl
 }</span>
 </pre>
@@ -378,6 +383,7 @@ import (
         "github.com/go-kit/kit/log"
 
         "github.com/utkarsh-josh/hdfc/spec"
+        wp "github.com/utkarsh-josh/hdfc/workerpool"
 )
 
 // DL is the interface to call dl layer functions
@@ -390,17 +396,19 @@ type DL interface {
 
 // BL is the business logic layer struct
 type BL struct {
-        logger   log.Logger
-        dl       DL
-        duration int
+        logger     log.Logger
+        workerPool wp.WorkerPool
+        dl         DL
+        duration   int
 }
 
 // NewService returns bl layer handler
-func NewService(logger log.Logger, dl DL, duration int) *BL <span class="cov8" title="1">{
+func NewService(logger log.Logger, workerpool wp.WorkerPool, dl DL, duration int) *BL <span class="cov8" title="1">{
         bl := &amp;BL{
-                logger:   logger,
-                dl:       dl,
-                duration: duration,
+                logger:     logger,
+                workerPool: workerpool,
+                dl:         dl,
+                duration:   duration,
         }
 
         return bl
@@ -422,22 +430,35 @@ func (bl *BL) GetWebsitesStatus(req *spec.WebsitesRequest) (*spec.ListWebsitesRe
 
 // StatusChecker is the event loop for handling periodic status check
 func (bl *BL) StatusChecker() <span class="cov8" title="1">{
+        bl.workerPool.Run()
         ticker := time.NewTicker(time.Duration(bl.duration) * time.Second)
         var statusChan chan spec.WebsiteStatus
+        var count int
+        var startTime time.Time
         for </span><span class="cov8" title="1">{
                 select </span>{
                 case &lt;-ticker.C:<span class="cov8" title="1">
+                        startTime = time.Now()
                         bl.logger.Log(
                                 "method", "StatusChecker",
                                 "msg", "Period Website Status Check Triggered",
-                                "time", time.Now(),
+                                "time", startTime,
                         )
                         resp := bl.dl.ListWebsitesStatus()
-                        statusChan = make(chan spec.WebsiteStatus, len(resp.StatusMap))
+                        count = len(resp.StatusMap)
+                        statusChan = make(chan spec.WebsiteStatus, count)
                         bl.CheckWebsitesStatus(resp.StatusMap, statusChan)</span>
 
                 case status := &lt;-statusChan:<span class="cov8" title="1">
-                        bl.dl.UpdateWebsitesStatus(status.Name, status.Status)</span>
+                        bl.dl.UpdateWebsitesStatus(status.Name, status.Status)
+                        count--
+                        if count == 0 </span><span class="cov8" title="1">{
+                                bl.logger.Log(
+                                        "method", "CheckWebsitesStatus",
+                                        "msg", "Period Website Status Check Completed",
+                                        "timeTaken", time.Since(startTime),
+                                )
+                        }</span>
                 }
         }
 }
@@ -520,7 +541,6 @@ func (dl *DL) UpdateWebsitesStatus(website, status string) <span class="cov8" ti
 import (
         "net/http"
         "net/url"
-        "sync"
         "time"
 
         "github.com/utkarsh-josh/hdfc/spec"
@@ -529,71 +549,56 @@ import (
 
 // CheckWebsitesStatus checks status of all the websites in the memory map
 func (bl *BL) CheckWebsitesStatus(statusMap map[string]string, ch chan spec.WebsiteStatus) <span class="cov8" title="1">{
-        var wg sync.WaitGroup
-        for website := range statusMap </span><span class="cov8" title="1">{
-                wg.Add(1)
-                go bl.sendOverHTTP(http.MethodGet, website, ch, &amp;wg)
-        }</span>
-        <span class="cov8" title="1">wg.Wait()
-        bl.logger.Log(
-                "method", "CheckWebsitesStatus",
-                "msg", "Period Website Status Check Completed",
-                "time", time.Now(),
-        )</span>
-}
-
-// sendOverHttp send http request to check the status of the website
-func (bl *BL) sendOverHTTP(method, website string, ch chan spec.WebsiteStatus, wg *sync.WaitGroup) <span class="cov8" title="1">{
-        defer wg.Done()
-
-        u, err := url.Parse(website)
-        if err != nil </span><span class="cov8" title="1">{
-                bl.logger.Log(
-                        "method", "sendOverHttp",
-                        "msg", "Invalid URL",
-                        "url", website,
-                        "err", err.Error(),
-                        "time", time.Now(),
-                )
-                ch &lt;- spec.WebsiteStatus{Name: website, Status: svcconst.StatusDown}
-                return
-        }</span>
-
-        <span class="cov8" title="1">url := url.URL{Scheme: "http", Host: u.Host, Path: u.Path}
-        client := &amp;http.Client{
-                Timeout: 5 * time.Second,
+        for uri := range statusMap </span><span class="cov8" title="1">{
+                website := uri
+                bl.workerPool.AddTask(func() </span><span class="cov8" title="1">{
+                        u, err := url.Parse(website)
+                        if err != nil </span><span class="cov8" title="1">{
+                                bl.logger.Log(
+                                        "method", "CheckWebsitesStatus",
+                                        "msg", "Invalid URL",
+                                        "url", website,
+                                        "err", err.Error(),
+                                        "time", time.Now(),
+                                )
+                                ch &lt;- spec.WebsiteStatus{Name: website, Status: svcconst.StatusDown}
+                                return
+                        }</span>
+                        <span class="cov8" title="1">url := url.URL{Scheme: "http", Host: u.Host, Path: u.Path}
+                        client := &amp;http.Client{
+                                Timeout: 5 * time.Second,
+                        }
+                        req, err := http.NewRequest(http.MethodGet, url.String(), nil)
+                        if err != nil </span><span class="cov0" title="0">{
+                                bl.logger.Log(
+                                        "method", "CheckWebsitesStatus",
+                                        "msg", "Failed to create http request",
+                                        "url", url.String(),
+                                        "err", err.Error(),
+                                        "time", time.Now(),
+                                )
+                                ch &lt;- spec.WebsiteStatus{Name: website, Status: svcconst.StatusDown}
+                                return
+                        }</span>
+                        <span class="cov8" title="1">resp, err := client.Do(req)
+                        if err != nil </span><span class="cov8" title="1">{
+                                bl.logger.Log(
+                                        "method", "CheckWebsitesStatus",
+                                        "msg", "Failed to send http request",
+                                        "url", url.String(),
+                                        "err", err.Error(),
+                                        "time", time.Now(),
+                                )
+                                ch &lt;- spec.WebsiteStatus{Name: website, Status: svcconst.StatusDown}
+                                return
+                        }</span>
+                        <span class="cov8" title="1">if resp.StatusCode != http.StatusOK </span><span class="cov8" title="1">{
+                                ch &lt;- spec.WebsiteStatus{Name: website, Status: svcconst.StatusDown}
+                                return
+                        }</span>
+                        <span class="cov8" title="1">ch &lt;- spec.WebsiteStatus{Name: website, Status: svcconst.StatusUp}</span>
+                })
         }
-        req, err := http.NewRequest(method, url.String(), nil)
-        if err != nil </span><span class="cov0" title="0">{
-                bl.logger.Log(
-                        "method", "sendOverHttp",
-                        "msg", "Failed to create http request",
-                        "url", url.String(),
-                        "err", err.Error(),
-                        "time", time.Now(),
-                )
-                ch &lt;- spec.WebsiteStatus{Name: website, Status: svcconst.StatusDown}
-                return
-        }</span>
-
-        <span class="cov8" title="1">resp, err := client.Do(req)
-        if err != nil </span><span class="cov8" title="1">{
-                bl.logger.Log(
-                        "method", "sendOverHttp",
-                        "msg", "Failed to send http request",
-                        "url", url.String(),
-                        "err", err.Error(),
-                        "time", time.Now(),
-                )
-                ch &lt;- spec.WebsiteStatus{Name: website, Status: svcconst.StatusDown}
-                return
-        }</span>
-
-        <span class="cov8" title="1">if resp.StatusCode != http.StatusOK </span><span class="cov8" title="1">{
-                ch &lt;- spec.WebsiteStatus{Name: website, Status: svcconst.StatusDown}
-                return
-        }</span>
-        <span class="cov8" title="1">ch &lt;- spec.WebsiteStatus{Name: website, Status: svcconst.StatusUp}</span>
 }
 </pre>
 		
@@ -710,6 +715,45 @@ func InitTestInfra() *TestUtil <span class="cov8" title="1">{
                 Logger: logger,
                 API:    api,
         }
+}</span>
+</pre>
+		
+		<pre class="file" id="file12" style="display: none">package workerpool
+
+// WorkerPool is a interface to call workerpool methods
+type WorkerPool interface {
+        Run()
+        AddTask(task func())
+}
+
+type workerPool struct {
+        maxWorker int
+        task      chan func()
+}
+
+// NewWorkerPool returns workerpool layer handler
+func NewWorkerPool(maxWorkerCount int) WorkerPool <span class="cov8" title="1">{
+        return &amp;workerPool{
+                maxWorker: maxWorkerCount,
+                task:      make(chan func()),
+        }
+}</span>
+
+func (wp *workerPool) Run() <span class="cov8" title="1">{
+        for i := 0; i &lt; wp.maxWorker; i++ </span><span class="cov8" title="1">{
+                go func(workerID int) </span><span class="cov8" title="1">{
+                        for </span><span class="cov8" title="1">{
+                                select</span>{
+                                case task := &lt;-wp.task:<span class="cov8" title="1">
+                                        task()</span>
+                                }
+                        }
+                }(i + 1)
+        }
+}
+
+func (wp *workerPool) AddTask(task func()) <span class="cov8" title="1">{
+        wp.task &lt;- task
 }</span>
 </pre>
 		
