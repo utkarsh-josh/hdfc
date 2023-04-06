@@ -1,0 +1,789 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>status: Go Coverage Report</title>
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+				
+				<option value="file0">github.com/utkarsh-josh/hdfc/cmd/status/main.go (0.0%)</option>
+				
+				<option value="file1">github.com/utkarsh-josh/hdfc/inithandler/handler.go (84.4%)</option>
+				
+				<option value="file2">github.com/utkarsh-josh/hdfc/inithandler/logging.go (100.0%)</option>
+				
+				<option value="file3">github.com/utkarsh-josh/hdfc/inithandler/service.go (100.0%)</option>
+				
+				<option value="file4">github.com/utkarsh-josh/hdfc/sdk/sdk.go (88.9%)</option>
+				
+				<option value="file5">github.com/utkarsh-josh/hdfc/sdk/util.go (80.0%)</option>
+				
+				<option value="file6">github.com/utkarsh-josh/hdfc/service/bl.go (100.0%)</option>
+				
+				<option value="file7">github.com/utkarsh-josh/hdfc/service/dl/dl.go (100.0%)</option>
+				
+				<option value="file8">github.com/utkarsh-josh/hdfc/service/status_checker.go (87.5%)</option>
+				
+				<option value="file9">github.com/utkarsh-josh/hdfc/service/transport.go (89.5%)</option>
+				
+				<option value="file10">github.com/utkarsh-josh/hdfc/svcutils/svcutils.go (90.0%)</option>
+				
+				<option value="file11">github.com/utkarsh-josh/hdfc/testutil/testutil.go (100.0%)</option>
+				
+				<option value="file12">github.com/utkarsh-josh/hdfc/workerpool/workerpool.go (100.0%)</option>
+				
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+			
+				<span class="cov0">not covered</span>
+				<span class="cov8">covered</span>
+			
+			</div>
+		</div>
+		<div id="content">
+		
+		<pre class="file" id="file0" style="display: none">package main
+
+import (
+        "os"
+        "time"
+
+        "github.com/utkarsh-josh/hdfc/inithandler"
+        "github.com/utkarsh-josh/hdfc/svcconst"
+)
+
+func main() <span class="cov0" title="0">{
+        logger := inithandler.InitLogging(svcconst.ServiceLoggerPort)
+        service := inithandler.InitService(logger, svcconst.PeriodicStatusCheckInterval)
+        go service.StatusChecker()
+        err := inithandler.HandleRequests(logger, service)
+        if err != nil </span><span class="cov0" title="0">{
+                logger.Log(
+                        "method", "main",
+                        "msg", "Failed to listen to the endpoints",
+                        "err", err.Error(),
+                        "time", time.Now(),
+                )
+                os.Exit(1)
+        }</span>
+}
+</pre>
+		
+		<pre class="file" id="file1" style="display: none">package inithandler
+
+import (
+        "encoding/json"
+        "net/http"
+        "time"
+
+        "github.com/go-kit/kit/log"
+        "github.com/gorilla/mux"
+
+        "github.com/utkarsh-josh/hdfc/service"
+        "github.com/utkarsh-josh/hdfc/spec"
+        "github.com/utkarsh-josh/hdfc/svcconst"
+)
+
+var (
+        bl     *service.BL
+        logger log.Logger
+)
+
+func handleAddWebsites(w http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
+        logger.Log(
+                "method", "handleAddWebsites",
+                "msg", "Request to add websites for status check",
+                "endpoint", r.Method+" "+r.URL.String(),
+                "time", time.Now(),
+        )
+        request, err := service.DecodeAddWebsitesRequest(r)
+        if err != nil </span><span class="cov0" title="0">{
+                logger.Log(
+                        "method", "handleAddWebsites",
+                        "msg", "Failed at transport layer",
+                        "err", err.Error(),
+                        "time", time.Now(),
+                )
+                http.Error(w, err.Error(), http.StatusBadRequest)
+                return
+        }</span>
+
+        <span class="cov8" title="1">req := request.(*spec.WebsitesRequest)
+        resp, err := bl.AddWebsites(req)
+        if err != nil </span><span class="cov8" title="1">{
+                logger.Log(
+                        "method", "handleAddWebsites",
+                        "msg", "Failed at bl layer",
+                        "err", err.Error(),
+                        "time", time.Now(),
+                )
+                http.Error(w, err.Error(), http.StatusInternalServerError)
+        }</span>
+
+        <span class="cov8" title="1">json.NewEncoder(w).Encode(resp)</span>
+}
+
+func handleGetWebsitesStatus(w http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
+        logger.Log(
+                "method", "handleGetWebsitesStatus",
+                "msg", "Request to get websites status",
+                "endpoint", r.Method+" "+r.URL.String(),
+                "time", time.Now(),
+        )
+        request, err := service.DecodeGetWebsitesStatus(r)
+        if err != nil </span><span class="cov8" title="1">{
+                logger.Log(
+                        "method", "handleGetWebsitesStatus",
+                        "msg", "Failed at transport layer",
+                        "err", err.Error(),
+                        "time", time.Now(),
+                )
+                http.Error(w, err.Error(), http.StatusBadRequest)
+                return
+        }</span>
+
+        <span class="cov8" title="1">resp := &amp;spec.ListWebsitesResponse{}
+        req := request.(*spec.WebsitesRequest)
+        resp, err = bl.GetWebsitesStatus(req)
+        if err != nil </span><span class="cov0" title="0">{
+                logger.Log(
+                        "method", "handleGetWebsitesStatus",
+                        "msg", "Failed at bl layer",
+                        "err", err.Error(),
+                        "time", time.Now(),
+                )
+                http.Error(w, err.Error(), http.StatusInternalServerError)
+        }</span>
+
+        <span class="cov8" title="1">json.NewEncoder(w).Encode(resp)</span>
+}
+
+// HandleRequests creates http handlers
+func HandleRequests(logHandler log.Logger, serv *service.BL) error <span class="cov8" title="1">{
+        bl = serv
+        logger = logHandler
+        route := mux.NewRouter().StrictSlash(true)
+        route.HandleFunc(spec.WebsiteURL, handleAddWebsites).Methods(http.MethodPost)
+        route.HandleFunc(spec.WebsiteURL, handleGetWebsitesStatus).Methods(http.MethodGet)
+        logger.Log(
+                "method", "HandleRequests",
+                "msg", "Initialized Routes",
+                "time", time.Now(),
+        )
+        return http.ListenAndServe(svcconst.ServiceHostName, route)
+}</span>
+</pre>
+		
+		<pre class="file" id="file2" style="display: none">package inithandler
+
+import (
+        "os"
+
+        "github.com/go-kit/kit/log"
+)
+
+// InitLogging initializes logging handler
+func InitLogging(port string) log.Logger <span class="cov8" title="1">{
+        var logger log.Logger
+        logger = log.NewLogfmtLogger(os.Stderr)
+        logger = log.With(logger, "listen", port, "caller", log.DefaultCaller)
+
+        return logger
+}</span>
+</pre>
+		
+		<pre class="file" id="file3" style="display: none">package inithandler
+
+import (
+        "github.com/go-kit/kit/log"
+
+        "github.com/utkarsh-josh/hdfc/service"
+        serviceDL "github.com/utkarsh-josh/hdfc/service/dl"
+        "github.com/utkarsh-josh/hdfc/svcconst"
+        wp "github.com/utkarsh-josh/hdfc/workerpool"
+)
+
+// InitService initializes service bl layer and dl layer
+func InitService(logger log.Logger, duration int) *service.BL <span class="cov8" title="1">{
+        dl := serviceDL.NewDL(logger)
+        workerpool := wp.NewWorkerPool(svcconst.MaxWorkerCount)
+        bl := service.NewService(logger, workerpool, dl, duration)
+        return bl
+}</span>
+</pre>
+		
+		<pre class="file" id="file4" style="display: none">package sdk
+
+import (
+        "encoding/json"
+        "net/http"
+        "net/url"
+
+        "github.com/go-kit/kit/log"
+        "github.com/utkarsh-josh/hdfc/spec"
+)
+
+// Service is the interface to call API
+type Service interface {
+        AddWebsites(req *spec.WebsitesRequest) error
+        ListWebsitesStatus() (*spec.ListWebsitesResponse, error)
+        GetWebsitesStatus(queryParams map[string]string) (*spec.ListWebsitesResponse, error)
+}
+
+type serviceSDK struct {
+        logger log.Logger
+        host   string
+}
+
+// NewServiceSDK returns sdk layer handler
+func NewServiceSDK(logger log.Logger, host string) Service <span class="cov8" title="1">{
+        return &amp;serviceSDK{
+                logger: logger,
+                host:   host,
+        }
+}</span>
+
+func (s *serviceSDK) AddWebsites(req *spec.WebsitesRequest) error <span class="cov8" title="1">{
+        jsonData, _ := json.Marshal(req)
+
+        u := url.URL{Scheme: "http", Host: s.host, Path: spec.WebsiteURL}
+        _, err := s.sendHTTPRequest(http.MethodPost, u.String(), string(jsonData))
+        return err
+}</span>
+
+func (s *serviceSDK) ListWebsitesStatus() (*spec.ListWebsitesResponse, error) <span class="cov8" title="1">{
+        u := url.URL{Scheme: "http", Host: s.host, Path: spec.WebsiteURL}
+        body, err := s.sendHTTPRequest(http.MethodGet, u.String(), "")
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        <span class="cov8" title="1">resp := &amp;spec.ListWebsitesResponse{}
+        err = json.Unmarshal(body, resp)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        <span class="cov8" title="1">return resp, nil</span>
+}
+
+func (s *serviceSDK) GetWebsitesStatus(queryParams map[string]string) (*spec.ListWebsitesResponse, error) <span class="cov8" title="1">{
+        u := url.URL{Scheme: "http", Host: s.host, Path: spec.WebsiteURL}
+        query := u.Query()
+        for queryKey, queryVal := range queryParams </span><span class="cov8" title="1">{
+                query.Set(queryKey, queryVal)
+        }</span>
+        <span class="cov8" title="1">u.RawQuery = query.Encode()
+
+        body, err := s.sendHTTPRequest(http.MethodGet, u.String(), "")
+        if err != nil </span><span class="cov8" title="1">{
+                return nil, err
+        }</span>
+
+        <span class="cov8" title="1">resp := &amp;spec.ListWebsitesResponse{}
+        err = json.Unmarshal(body, resp)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        <span class="cov8" title="1">return resp, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file5" style="display: none">package sdk
+
+import (
+        "fmt"
+        "io/ioutil"
+        "net/http"
+        "strings"
+)
+
+func (s *serviceSDK) sendHTTPRequest(method, url, reqData string) ([]byte, error) <span class="cov8" title="1">{
+        client := &amp;http.Client{}
+        req, err := http.NewRequest(method, url, strings.NewReader(reqData))
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+        <span class="cov8" title="1">req.Header.Set("Content-Type", "application/json")
+        resp, err := client.Do(req)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+        <span class="cov8" title="1">defer resp.Body.Close()
+        body, err := ioutil.ReadAll(resp.Body)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        <span class="cov8" title="1">if resp.StatusCode != http.StatusOK </span><span class="cov8" title="1">{
+                return nil, fmt.Errorf("Invalid request or Internal server error")
+        }</span>
+
+        <span class="cov8" title="1">return body, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file6" style="display: none">package service
+
+import (
+        "time"
+
+        "github.com/go-kit/kit/log"
+
+        "github.com/utkarsh-josh/hdfc/spec"
+        wp "github.com/utkarsh-josh/hdfc/workerpool"
+)
+
+// DL is the interface to call dl layer functions
+type DL interface {
+        AddWebsitesToStatusMap(req *spec.WebsitesRequest) (spec.AddWebsiteResponse, error)
+        ListWebsitesStatus() *spec.ListWebsitesResponse
+        GetWebsitesStatusFromStatusMap(req *spec.WebsitesRequest) *spec.ListWebsitesResponse
+        UpdateWebsitesStatus(website, status string)
+}
+
+// BL is the business logic layer struct
+type BL struct {
+        logger     log.Logger
+        workerPool wp.WorkerPool
+        dl         DL
+        duration   int
+}
+
+// NewService returns bl layer handler
+func NewService(logger log.Logger, workerpool wp.WorkerPool, dl DL, duration int) *BL <span class="cov8" title="1">{
+        bl := &amp;BL{
+                logger:     logger,
+                workerPool: workerpool,
+                dl:         dl,
+                duration:   duration,
+        }
+
+        return bl
+}</span>
+
+// AddWebsites adds websites to the memory map for status check
+func (bl *BL) AddWebsites(req *spec.WebsitesRequest) (spec.AddWebsiteResponse, error) <span class="cov8" title="1">{
+        return bl.dl.AddWebsitesToStatusMap(req)
+}</span>
+
+// GetWebsitesStatus fetches status of the websites status from the memory map
+func (bl *BL) GetWebsitesStatus(req *spec.WebsitesRequest) (*spec.ListWebsitesResponse, error) <span class="cov8" title="1">{
+        if len(req.Websites) == 0 </span><span class="cov8" title="1">{
+                return bl.dl.ListWebsitesStatus(), nil
+        }</span>
+
+        <span class="cov8" title="1">return bl.dl.GetWebsitesStatusFromStatusMap(req), nil</span>
+}
+
+// StatusChecker is the event loop for handling periodic status check
+func (bl *BL) StatusChecker() <span class="cov8" title="1">{
+        bl.workerPool.Run()
+        ticker := time.NewTicker(time.Duration(bl.duration) * time.Second)
+        var statusChan chan spec.WebsiteStatus
+        var count int
+        var startTime time.Time
+        for </span><span class="cov8" title="1">{
+                select </span>{
+                case &lt;-ticker.C:<span class="cov8" title="1">
+                        startTime = time.Now()
+                        bl.logger.Log(
+                                "method", "StatusChecker",
+                                "msg", "Period Website Status Check Triggered",
+                                "time", startTime,
+                        )
+                        resp := bl.dl.ListWebsitesStatus()
+                        count = len(resp.StatusMap)
+                        statusChan = make(chan spec.WebsiteStatus, count)
+                        bl.CheckWebsitesStatus(resp.StatusMap, statusChan)</span>
+
+                case status := &lt;-statusChan:<span class="cov8" title="1">
+                        bl.dl.UpdateWebsitesStatus(status.Name, status.Status)
+                        count--
+                        if count == 0 </span><span class="cov8" title="1">{
+                                bl.logger.Log(
+                                        "method", "CheckWebsitesStatus",
+                                        "msg", "Period Website Status Check Completed",
+                                        "timeTaken", time.Since(startTime),
+                                )
+                        }</span>
+                }
+        }
+}
+</pre>
+		
+		<pre class="file" id="file7" style="display: none">package dl
+
+import (
+        "fmt"
+
+        "github.com/go-kit/kit/log"
+
+        "github.com/utkarsh-josh/hdfc/spec"
+        "github.com/utkarsh-josh/hdfc/svcconst"
+)
+
+// DL is the database logic layer struct
+type DL struct {
+        logger     log.Logger
+        websiteMap map[string]string
+}
+
+// NewDL returns dl layer handler
+func NewDL(logger log.Logger) *DL <span class="cov8" title="1">{
+        dl := &amp;DL{
+                logger:     logger,
+                websiteMap: make(map[string]string),
+        }
+        return dl
+}</span>
+
+// AddWebsitesToStatusMap adds websites to the memory map for status check
+func (dl *DL) AddWebsitesToStatusMap(req *spec.WebsitesRequest) (spec.AddWebsiteResponse, error) <span class="cov8" title="1">{
+        if len(req.Websites) == 0 </span><span class="cov8" title="1">{
+                return false, fmt.Errorf("Empty website list provided")
+        }</span>
+
+        <span class="cov8" title="1">m := make(map[string]string)
+        for _, website := range req.Websites </span><span class="cov8" title="1">{
+                if status, ok := dl.websiteMap[website]; ok </span><span class="cov8" title="1">{
+                        m[website] = status
+                        continue</span>
+                }
+                <span class="cov8" title="1">m[website] = svcconst.StatusNotYetChecked</span>
+        }
+
+        <span class="cov8" title="1">dl.websiteMap = m
+        return spec.AddWebsiteResponse(true), nil</span>
+}
+
+// ListWebsitesStatus list down status of all the websites status from the memory map
+func (dl *DL) ListWebsitesStatus() *spec.ListWebsitesResponse <span class="cov8" title="1">{
+        resp := &amp;spec.ListWebsitesResponse{StatusMap: dl.websiteMap}
+        return resp
+}</span>
+
+// GetWebsitesStatusFromStatusMap fetches status of given websites from the memory map
+func (dl *DL) GetWebsitesStatusFromStatusMap(req *spec.WebsitesRequest) *spec.ListWebsitesResponse <span class="cov8" title="1">{
+        m := make(map[string]string)
+        for _, website := range req.Websites </span><span class="cov8" title="1">{
+                if val, ok := dl.websiteMap[website]; ok </span><span class="cov8" title="1">{
+                        m[website] = val
+                }</span>
+        }
+
+        <span class="cov8" title="1">resp := &amp;spec.ListWebsitesResponse{StatusMap: m}
+        return resp</span>
+}
+
+// UpdateWebsitesStatus updates the status of existing websites in the memory map
+func (dl *DL) UpdateWebsitesStatus(website, status string) <span class="cov8" title="1">{
+        if _, ok := dl.websiteMap[website]; ok </span><span class="cov8" title="1">{
+                dl.websiteMap[website] = status
+        }</span>
+}
+</pre>
+		
+		<pre class="file" id="file8" style="display: none">package service
+
+import (
+        "net/http"
+        "net/url"
+        "time"
+
+        "github.com/utkarsh-josh/hdfc/spec"
+        "github.com/utkarsh-josh/hdfc/svcconst"
+)
+
+// CheckWebsitesStatus checks status of all the websites in the memory map
+func (bl *BL) CheckWebsitesStatus(statusMap map[string]string, ch chan spec.WebsiteStatus) <span class="cov8" title="1">{
+        for uri := range statusMap </span><span class="cov8" title="1">{
+                website := uri
+                bl.workerPool.AddTask(func() </span><span class="cov8" title="1">{
+                        u, err := url.Parse(website)
+                        if err != nil </span><span class="cov8" title="1">{
+                                bl.logger.Log(
+                                        "method", "CheckWebsitesStatus",
+                                        "msg", "Invalid URL",
+                                        "url", website,
+                                        "err", err.Error(),
+                                        "time", time.Now(),
+                                )
+                                ch &lt;- spec.WebsiteStatus{Name: website, Status: svcconst.StatusDown}
+                                return
+                        }</span>
+                        <span class="cov8" title="1">url := url.URL{Scheme: "http", Host: u.Host, Path: u.Path}
+                        client := &amp;http.Client{
+                                Timeout: 5 * time.Second,
+                        }
+                        req, err := http.NewRequest(http.MethodGet, url.String(), nil)
+                        if err != nil </span><span class="cov0" title="0">{
+                                bl.logger.Log(
+                                        "method", "CheckWebsitesStatus",
+                                        "msg", "Failed to create http request",
+                                        "url", url.String(),
+                                        "err", err.Error(),
+                                        "time", time.Now(),
+                                )
+                                ch &lt;- spec.WebsiteStatus{Name: website, Status: svcconst.StatusDown}
+                                return
+                        }</span>
+                        <span class="cov8" title="1">resp, err := client.Do(req)
+                        if err != nil </span><span class="cov8" title="1">{
+                                bl.logger.Log(
+                                        "method", "CheckWebsitesStatus",
+                                        "msg", "Failed to send http request",
+                                        "url", url.String(),
+                                        "err", err.Error(),
+                                        "time", time.Now(),
+                                )
+                                ch &lt;- spec.WebsiteStatus{Name: website, Status: svcconst.StatusDown}
+                                return
+                        }</span>
+                        <span class="cov8" title="1">if resp.StatusCode != http.StatusOK </span><span class="cov8" title="1">{
+                                ch &lt;- spec.WebsiteStatus{Name: website, Status: svcconst.StatusDown}
+                                return
+                        }</span>
+                        <span class="cov8" title="1">ch &lt;- spec.WebsiteStatus{Name: website, Status: svcconst.StatusUp}</span>
+                })
+        }
+}
+</pre>
+		
+		<pre class="file" id="file9" style="display: none">package service
+
+import (
+        "encoding/json"
+        "fmt"
+        "net/http"
+
+        "github.com/utkarsh-josh/hdfc/spec"
+        "github.com/utkarsh-josh/hdfc/svcutils"
+)
+
+// DecodeAddWebsitesRequest parses the http request for Add Websites
+func DecodeAddWebsitesRequest(r *http.Request) (interface{}, error) <span class="cov8" title="1">{
+        request := spec.WebsitesRequest{}
+        decoder := json.NewDecoder(r.Body)
+        decoder.DisallowUnknownFields()
+        err := decoder.Decode(&amp;request)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        <span class="cov8" title="1">return &amp;request, nil</span>
+}
+
+// DecodeGetWebsitesStatus parses the http request for Get Websites Status
+func DecodeGetWebsitesStatus(r *http.Request) (interface{}, error) <span class="cov8" title="1">{
+        request := spec.WebsitesRequest{}
+        var err error
+
+        r.ParseForm()
+        for k := range r.Form </span><span class="cov8" title="1">{
+                if _, ok := svcutils.AllowedQueryParams[k]; !ok </span><span class="cov8" title="1">{
+                        return nil, fmt.Errorf("Invalid QueryParams : %s", k)
+                }</span>
+        }
+        // Query Params
+        <span class="cov8" title="1">q := r.URL.Query()
+
+        if q.Get(svcutils.Name) != "" </span><span class="cov8" title="1">{
+                request.Websites, err = svcutils.GetStringArrayQueryVariable(q, svcutils.Name)
+                if err != nil </span><span class="cov0" title="0">{
+                        return nil, err
+                }</span>
+        }
+
+        <span class="cov8" title="1">return &amp;request, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file10" style="display: none">package svcutils
+
+import (
+        "net/url"
+        "strings"
+)
+
+// Name ...
+const (
+        Name = "name"
+)
+
+// AllowedQueryParams is the list of allowed query params
+var AllowedQueryParams = map[string]struct{}{
+        Name: struct{}{},
+}
+
+// GetStringArrayQueryVariable retrieves string array for the query variable
+func GetStringArrayQueryVariable(vars url.Values, variable string) ([]string, error) <span class="cov8" title="1">{
+        valStr := vars.Get(variable)
+        if valStr == "" </span><span class="cov0" title="0">{
+                return nil, nil
+        }</span>
+
+        <span class="cov8" title="1">arr := strings.Split(valStr, ",")
+        var params []string
+        for _, p := range arr </span><span class="cov8" title="1">{
+                p = strings.TrimSpace(p)
+                if p != "" </span><span class="cov8" title="1">{
+                        params = append(params, p)
+                }</span>
+        }
+        <span class="cov8" title="1">return params, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file11" style="display: none">package testutil
+
+import (
+        "github.com/go-kit/kit/log"
+
+        "github.com/utkarsh-josh/hdfc/inithandler"
+        "github.com/utkarsh-josh/hdfc/sdk"
+        "github.com/utkarsh-josh/hdfc/svcconst"
+)
+
+// TestUtil will encapsulate all the components,sdk etc. required to run CT
+type TestUtil struct {
+        Logger log.Logger
+        API    sdk.Service
+}
+
+// InitTestInfra initializes common components to bring service up
+func InitTestInfra() *TestUtil <span class="cov8" title="1">{
+        logger := inithandler.InitLogging(svcconst.TestEnvLoggerPort)
+        service := inithandler.InitService(logger, svcconst.PeriodicStatusCheckInterval)
+        go service.StatusChecker()
+        go inithandler.HandleRequests(logger, service)
+        api := sdk.NewServiceSDK(logger, svcconst.ServiceHostName)
+
+        return &amp;TestUtil{
+                Logger: logger,
+                API:    api,
+        }
+}</span>
+</pre>
+		
+		<pre class="file" id="file12" style="display: none">package workerpool
+
+// WorkerPool is a interface to call workerpool methods
+type WorkerPool interface {
+        Run()
+        AddTask(task func())
+}
+
+type workerPool struct {
+        maxWorker int
+        task      chan func()
+}
+
+// NewWorkerPool returns workerpool layer handler
+func NewWorkerPool(maxWorkerCount int) WorkerPool <span class="cov8" title="1">{
+        return &amp;workerPool{
+                maxWorker: maxWorkerCount,
+                task:      make(chan func()),
+        }
+}</span>
+
+func (wp *workerPool) Run() <span class="cov8" title="1">{
+        for i := 0; i &lt; wp.maxWorker; i++ </span><span class="cov8" title="1">{
+                go func(workerID int) </span><span class="cov8" title="1">{
+                        for </span><span class="cov8" title="1">{
+                                select</span>{
+                                case task := &lt;-wp.task:<span class="cov8" title="1">
+                                        task()</span>
+                                }
+                        }
+                }(i + 1)
+        }
+}
+
+func (wp *workerPool) AddTask(task func()) <span class="cov8" title="1">{
+        wp.task &lt;- task
+}</span>
+</pre>
+		
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>
